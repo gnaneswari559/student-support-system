@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>API Tester</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; max-width: 800px; margin: 0 auto; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
+        button { padding: 10px 20px; margin: 5px; cursor: pointer; background: #007bff; color: white; border: none; border-radius: 3px; }
+        button:hover { background: #0056b3; }
+        pre { background: #f5f5f5; padding: 10px; border-radius: 3px; overflow-x: auto; }
+        .success { color: green; }
+        .error { color: red; }
+    </style>
+</head>
+<body>
+    <h1>🧪 API Tester</h1>
+    <p>Use this page to test the new APIs. Make sure you're logged in at <a href="http://localhost:3000" target="_blank">http://localhost:3000</a> first.</p>
+    
+    <div class="test-section">
+        <h3>1. Get Token</h3>
+        <button onclick="getToken()">Get Token from localStorage</button>
+        <pre id="token-display">Click button to get token</pre>
+    </div>
+
+    <div class="test-section">
+        <h3>2. Test Feed API</h3>
+        <button onclick="testFeed()">GET /api/feed</button>
+        <pre id="feed-result">Click button to test</pre>
+    </div>
+
+    <div class="test-section">
+        <h3>3. Test Document Search</h3>
+        <input type="text" id="search-query" placeholder="Search query" value="policy" style="padding: 5px; width: 200px;">
+        <button onclick="testDocSearch()">GET /api/docs/search</button>
+        <pre id="docs-result">Click button to test</pre>
+    </div>
+
+    <div class="test-section">
+        <h3>4. Upload Document (RAG)</h3>
+        <button onclick="uploadDoc()">POST /api/docs/upload</button>
+        <pre id="upload-result">Click button to upload test document</pre>
+    </div>
+
+    <div class="test-section">
+        <h3>5. Create Feed</h3>
+        <button onclick="createFeed()">POST /api/feed</button>
+        <pre id="feed-create-result">Click button to create test feed</pre>
+    </div>
+
+    <script>
+        let token = null;
+
+        function getToken() {
+            // Try to get from localStorage (if same origin)
+            try {
+                token = localStorage.getItem('token');
+                if (token) {
+                    document.getElementById('token-display').textContent = 'Token: ' + token.substring(0, 50) + '...';
+                    document.getElementById('token-display').className = 'success';
+                } else {
+                    document.getElementById('token-display').textContent = 'No token found. Please login at http://localhost:3000 first, then paste your token here:';
+                    document.getElementById('token-display').className = 'error';
+                    const input = document.createElement('input');
+                    input.type = 'text';
+                    input.placeholder = 'Paste token here';
+                    input.style.width = '100%';
+                    input.style.padding = '5px';
+                    input.onchange = (e) => token = e.target.value;
+                    document.getElementById('token-display').appendChild(input);
+                }
+            } catch (e) {
+                document.getElementById('token-display').textContent = 'Cannot access localStorage. Please paste your token:';
+                const input = document.createElement('input');
+                input.type = 'text';
+                input.placeholder = 'Paste token here';
+                input.style.width = '100%';
+                input.style.padding = '5px';
+                input.onchange = (e) => token = e.target.value;
+                document.getElementById('token-display').appendChild(input);
+            }
+        }
+
+        async function testFeed() {
+            if (!token) {
+                alert('Please get token first!');
+                return;
+            }
+            try {
+                const response = await fetch('http://localhost:5000/api/feed', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await response.json();
+                document.getElementById('feed-result').textContent = JSON.stringify(data, null, 2);
+                document.getElementById('feed-result').className = response.ok ? 'success' : 'error';
+            } catch (error) {
+                document.getElementById('feed-result').textContent = 'Error: ' + error.message;
+                document.getElementById('feed-result').className = 'error';
+            }
+        }
+
+        async function testDocSearch() {
+            if (!token) {
+                alert('Please get token first!');
+                return;
+            }
+            const query = document.getElementById('search-query').value;
+            try {
+                const response = await fetch(`http://localhost:5000/api/docs/search?query=${encodeURIComponent(query)}`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await response.json();
+                document.getElementById('docs-result').textContent = JSON.stringify(data, null, 2);
+                document.getElementById('docs-result').className = response.ok ? 'success' : 'error';
+            } catch (error) {
+                document.getElementById('docs-result').textContent = 'Error: ' + error.message;
+                document.getElementById('docs-result').className = 'error';
+            }
+        }
+
+        async function uploadDoc() {
+            if (!token) {
+                alert('Please get token first!');
+                return;
+            }
+            try {
+                const response = await fetch('http://localhost:5000/api/docs/upload', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        title: 'Test Academic Policy',
+                        content: 'This is a test document for RAG. Students must maintain 75% attendance. Exams are conducted twice per semester.',
+                        category: 'Academic',
+                        tags: ['policy', 'attendance', 'exams']
+                    })
+                });
+                const data = await response.json();
+                document.getElementById('upload-result').textContent = JSON.stringify(data, null, 2);
+                document.getElementById('upload-result').className = response.ok ? 'success' : 'error';
+            } catch (error) {
+                document.getElementById('upload-result').textContent = 'Error: ' + error.message;
+                document.getElementById('upload-result').className = 'error';
+            }
+        }
+
+        async function createFeed() {
+            if (!token) {
+                alert('Please get token first!');
+                return;
+            }
+            try {
+                const response = await fetch('http://localhost:5000/api/feed', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        type: 'Circular',
+                        title: 'Test Circular',
+                        content: 'This is a test circular for the feed system.',
+                        priority: 'Medium',
+                        targetAudience: 'All'
+                    })
+                });
+                const data = await response.json();
+                document.getElementById('feed-create-result').textContent = JSON.stringify(data, null, 2);
+                document.getElementById('feed-create-result').className = response.ok ? 'success' : 'error';
+            } catch (error) {
+                document.getElementById('feed-create-result').textContent = 'Error: ' + error.message;
+                document.getElementById('feed-create-result').className = 'error';
+            }
+        }
+
+        // Auto-get token on load
+        window.onload = getToken;
+    </script>
+</body>
+</html>
+
